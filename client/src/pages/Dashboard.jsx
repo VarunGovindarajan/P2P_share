@@ -48,8 +48,9 @@ export default function Dashboard() {
   useEffect(() => {
     if (!token) return;
 
-    const socket = io("http://localhost:5000", { auth: { token } });
-    socketRef.current = socket;
+const socket = io(import.meta.env.VITE_SOCKET_URL || "http://localhost:5000", {
+  auth: { token },
+});    socketRef.current = socket;
 
     socket.on("online-users", (users) => setOnlineCount(users.length));
 
