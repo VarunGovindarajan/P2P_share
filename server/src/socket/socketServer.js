@@ -8,7 +8,7 @@ const onlineUsers = new Map();
 export const initSocket = (httpServer) => {
   io = new Server(httpServer, {
     cors: {
-      origin: "http://localhost:5173",
+      origin: "https://p2-p-share.vercel.app",
       credentials: true,
     },
   });
