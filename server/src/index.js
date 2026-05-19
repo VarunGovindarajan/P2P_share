@@ -29,7 +29,7 @@ app.use(cors({
     }
   },
   credentials: true,
-}));
+}));a
 app.use(express.json());
 
 // Routes
