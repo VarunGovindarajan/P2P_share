@@ -5,13 +5,13 @@ export default function P2PTransfer({ socket, onSendFile }) {
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [selectedFile, setSelectedFile] = useState(null);
   const [sending, setSending] = useState(false);
+  const [sendingTo, setSendingTo] = useState(null);
 
   useEffect(() => {
     const fetchOnlineUsers = () => {
       api.get("/auth/online-users").then((res) => setOnlineUsers(res.data));
     };
     fetchOnlineUsers();
-
     if (socket) {
       socket.on("online-users", fetchOnlineUsers);
       return () => socket.off("online-users", fetchOnlineUsers);
@@ -19,48 +19,127 @@ export default function P2PTransfer({ socket, onSendFile }) {
   }, [socket]);
 
   const handleSend = async (targetUserId) => {
-    if (!selectedFile) return alert("Select a file first");
+    if (!selectedFile) return;
     setSending(true);
+    setSendingTo(targetUserId);
     await onSendFile(targetUserId, selectedFile);
     setSending(false);
+    setSendingTo(null);
     setSelectedFile(null);
   };
 
   return (
-    <div className="bg-gray-900 rounded-2xl p-5 mb-6">
-      <h2 className="text-white font-semibold mb-3">
-        Direct P2P Transfer
-      </h2>
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
 
-      <input
-        type="file"
-        onChange={(e) => setSelectedFile(e.target.files[0])}
-        className="w-full bg-gray-800 text-gray-300 text-sm rounded-lg px-4 py-2 mb-4 cursor-pointer"
-      />
+      {/* File picker */}
+      <label style={{
+        display: "flex", alignItems: "center", gap: 10,
+        background: "#0e0d17",
+        border: `0.5px solid ${selectedFile ? "#6350dc" : "#252438"}`,
+        borderRadius: 8, padding: "9px 12px",
+        cursor: "pointer", transition: "border-color 0.15s",
+      }}>
+        <i className="ti ti-paperclip" style={{ fontSize: 15, color: "#5d5b78", flexShrink: 0 }} aria-hidden="true" />
+        <span style={{
+          fontSize: 13, color: selectedFile ? "#dddbed" : "#38364f",
+          flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+        }}>
+          {selectedFile ? selectedFile.name : "choose a file to send…"}
+        </span>
+        {selectedFile && (
+          <span style={{
+            fontSize: 11, color: "#5d5b78",
+            fontFamily: "'DM Mono', monospace", flexShrink: 0,
+          }}>
+            {(selectedFile.size / 1024).toFixed(1)} KB
+          </span>
+        )}
+        <input
+          type="file"
+          style={{ display: "none" }}
+          onChange={(e) => setSelectedFile(e.target.files[0])}
+        />
+      </label>
 
-      {selectedFile && (
-        <p className="text-gray-400 text-xs mb-3">
-          Selected: {selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)
-        </p>
-      )}
-
+      {/* Peers list */}
       {onlineUsers.length === 0 ? (
-        <p className="text-gray-600 text-sm">No other users online</p>
+        <div style={{
+          display: "flex", alignItems: "center", gap: 8,
+          padding: "10px 0", color: "#38364f", fontSize: 13,
+        }}>
+          <i className="ti ti-wifi-off" style={{ fontSize: 15 }} aria-hidden="true" />
+          no other users online
+        </div>
       ) : (
-        <div className="space-y-2">
-          <p className="text-gray-500 text-xs mb-2">Online peers:</p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <span style={{
+            fontSize: 11, color: "#5d5b78",
+            textTransform: "uppercase", letterSpacing: "0.07em", fontWeight: 500,
+          }}>
+            online peers
+          </span>
           {onlineUsers.map((u) => (
-            <div key={u._id} className="flex items-center justify-between bg-gray-800 rounded-lg px-4 py-2">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-green-400 rounded-full" />
-                <span className="text-white text-sm">{u.username}</span>
+            <div
+              key={u._id}
+              style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                background: "#0e0d17",
+                border: "0.5px solid #252438",
+                borderRadius: 8, padding: "9px 12px",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{
+                  width: 7, height: 7, borderRadius: "50%",
+                  background: "#4ade80",
+                  boxShadow: "0 0 5px rgba(74,222,128,0.5)",
+                  display: "inline-block", flexShrink: 0,
+                }} />
+                <div style={{
+                  width: 26, height: 26, borderRadius: "50%",
+                  background: "linear-gradient(135deg, #6350dc, #a88bfa)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 10, fontWeight: 500, color: "#fff",
+                }}>
+                  {u.username.slice(0, 2).toUpperCase()}
+                </div>
+                <span style={{ fontSize: 13, color: "#dddbed" }}>{u.username}</span>
               </div>
+
               <button
                 onClick={() => handleSend(u._id)}
                 disabled={sending || !selectedFile}
-                className="bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white text-xs px-3 py-1.5 rounded-lg transition"
+                style={{
+                  background: selectedFile && !sending
+                    ? "linear-gradient(135deg, #6350dc, #8b7ff5)"
+                    : "#1a1928",
+                  border: "none",
+                  borderRadius: 7,
+                  padding: "6px 14px",
+                  fontSize: 12,
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontWeight: 500,
+                  color: selectedFile && !sending ? "#fff" : "#3a3858",
+                  cursor: selectedFile && !sending ? "pointer" : "not-allowed",
+                  display: "flex", alignItems: "center", gap: 6,
+                  transition: "opacity 0.15s",
+                  opacity: sending && sendingTo !== u._id ? 0.4 : 1,
+                }}
               >
-                {sending ? "Sending..." : "Send"}
+                {sending && sendingTo === u._id ? (
+                  <>
+                    <i className="ti ti-loader-2" style={{
+                      fontSize: 13,
+                      animation: "spin 1s linear infinite",
+                    }} aria-hidden="true" />
+                    sending…
+                  </>
+                ) : (
+                  <>
+                    <i className="ti ti-send" style={{ fontSize: 13 }} aria-hidden="true" />
+                    send
+                  </>
+                )}
               </button>
             </div>
           ))}
